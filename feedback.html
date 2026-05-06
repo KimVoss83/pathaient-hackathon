@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedback Formular</title>
+    <style>
+		:root {
+		  --green: #006b4f;
+		  --light-green: #eaf7ef;
+		  --soft-mint: #eaf6f4;
+		  --soft-yellow: #fbfae8;
+		  --lime: #8cff3f;
+		  --text: #2d3338;
+		  --muted: #687176;
+		  --white: #ffffff;
+		}
+	  body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 20px; }
+	  #chat-container { width: 100%; max-width: 450px; background: var(--green); padding: 25px; border-radius: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); position: relative; overflow: hidden; }
+	  .bot-msg { background: var(--green); color: white; padding: 12px; border-radius: 10px 10px 10px 0; font-size: 1.5em; margin-bottom: 20px; }
+
+	  .options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+
+	  /* Fortschrittsbalken Container */
+	  #progress-container { width: 100%; height: 8px; background: #e9ecef; position: absolute; top: 0; left: 0; }
+	  /* Der eigentliche grüne Balken */
+	  #progress-bar { width: 25%; height: 100%; background: var(--lime); transition: width 0.4s ease; }
+
+	  /* Versteckt Checkboxen und Radio-Buttons */
+	  .options input { display: none; }
+
+	  /* Basis-Design der Labels */
+	  .options label {
+	      display: block;
+	      padding: 15px;
+	      border: 2px solid var(--lime);
+	      border-radius: 10px;
+	      cursor: pointer;
+	      text-align: center;
+	      font-weight: 500;
+	      position: relative; 
+	      z-index: 1;
+	      overflow: hidden; 
+	      background: white;
+	  	color: var(--green);
+	  	background-color: var(--lime);
+	  	
+	      /* Transition für die Rückkehr zum Normalzustand */
+	      transition: color 0.3s ease, border-color 0.3s ease;
+	  }
+
+	  /* Die farbige Fläche - Startet LINKS außerhalb */
+	  .options label::before {
+	      content: "";
+	      position: absolute;
+	      top: 0;
+	      left: -100%; /* Komplett links versteckt */
+	      width: 100%;
+	      height: 100%;
+	      background: var(--green); /* Deine Hover-Farbe */
+	      z-index: -1;
+	      /* Transition für die Hin- und Rückbewegung */
+	      transition: transform 0.4s ease;
+	      transform: translateX(0);
+	  }
+
+	  /* HOVER: Hier passiert die Animation beim Draufgehen */
+	  .options label:hover {
+	      border-color: var(--lime);
+	  	  color: var(--white);
+	  }
+
+	  .options label:hover::before {
+	      /* Schiebt die Fläche per Transform rein - das ist performanter */
+	      transform: translateX(100%);
+	  }
+
+	  /* Spezialfall: Wenn das Feld bereits ausgewählt ist */
+	  .options input:checked + label {
+	      background-color: var(--green);
+	      color: var(--white);
+	      border-color: var(--lime);
+	  }
+
+	  .options input:checked + label::before {
+	      display: none; /* Keine Animation bei bereits aktiven Feldern */
+	  }
+
+	  button.next-btn {
+	      display: block;
+	      padding: 15px;
+	      border: 2px solid var(--lime);
+	      border-radius: 10px;
+	      cursor: pointer;
+	      text-align: center;
+	      font-weight: 500;
+	      font-size: 16px;
+	      position: relative; 
+	      z-index: 1;
+	      overflow: hidden; 
+	      background-color: var(--lime); 
+	      color: var(--green);
+	      transition: color 0.3s ease, border-color 0.3s ease;
+	      width: 100%;
+	  }
+
+	  button.next-btn::before {
+	      content: "";
+	      position: absolute;
+	      top: 0;
+	      left: -100%;
+	      width: 100%;
+	      height: 100%;
+	      background: var(--white);
+	      z-index: -1;
+	      transition: transform 0.4s ease;
+	      transform: translateX(0); 
+	  }
+
+	  button.next-btn:hover {
+	      color: var(--green); 
+	      border-color: var(--lime);
+	  }
+
+	  button.next-btn:hover::before {
+	      transform: translateX(100%);
+	  }
+
+	  textarea:focus {
+	      outline: none;
+	      border-color: var(--lime);
+	      background-color: #f8f9fa;
+	  }
+	  
+	  #success-section { display: none; text-align: center; }
+	
+    </style>
+</head>
+<body>
+
+<div id="chat-container">
+    <!-- Fortschrittsbalken -->
+    <div id="progress-container">
+        <div id="progress-bar"></div>
+    </div>
+
+    <div id="chat-flow">
+        <!-- FRAGE 1 -->
+        <div class="step" id="step1">
+            <div class="bot-msg">1. Wie zufrieden bist du insgesamt mit deinem Trainingsplan?</div>
+            <div class="options">
+                <input type="radio" id="q1_1" name="q1" value="1 Sehr zufrieden"><label for="q1_1">1 Sehr zufrieden</label>
+                <input type="radio" id="q1_2" name="q1" value="2 zufrieden"><label for="q1_2">2 zufrieden</label>
+                <input type="radio" id="q1_3" name="q1" value="3 neutral"><label for="q1_3">3 neutral</label>
+                <input type="radio" id="q1_4" name="q1" value="4 unzufrieden"><label for="q1_4">4 unzufrieden</label>
+                <input type="radio" id="q1_5" name="q1" value="5 sehr unzufrieden"><label for="q1_5">5 sehr unzufrieden</label>
+            </div>
+            <button class="next-btn" onclick="saveStep(1, 2)">Weiter</button>
+        </div>
+
+        <!-- FRAGE 2 -->
+        <div class="step" id="step2" style="display:none;">
+            <div class="bot-msg">2. Wie gut passte der Plan zu deinem Gesundheitsziel?</div>
+            <div class="options">
+                <input type="radio" id="q2_1" name="q2" value="1 Perfekt"><label for="q2_1">1 Perfekt</label>
+                <input type="radio" id="q2_2" name="q2" value="2 Gut"><label for="q2_2">2 Gut</label>
+                <input type="radio" id="q2_3" name="q2" value="3 Teilweise"><label for="q2_3">3 Teilweise</label>
+                <input type="radio" id="q2_4" name="q2" value="4 Wenig"><label for="q2_4">4 Wenig</label>
+                <input type="radio" id="q2_5" name="q2" value="5 Gar nicht"><label for="q2_5">5 Gar nicht</label>
+            </div>
+            <button class="next-btn" onclick="saveStep(2, 3)">Weiter</button>
+        </div>
+
+        <!-- FRAGE 3 -->
+        <div class="step" id="step3" style="display:none;">
+            <div class="bot-msg">3. Wie gut war der Plan in deinem Alltag umsetzbar?</div>
+            <div class="options">
+                <input type="radio" id="q3_1" name="q3" value="1 Sehr einfach"><label for="q3_1">1 Sehr einfach</label>
+                <input type="radio" id="q3_2" name="q3" value="2 Gut umsetzbar"><label for="q3_2">2 Gut umsetzbar</label>
+                <input type="radio" id="q3_3" name="q3" value="3 Mittel"><label for="q3_3">3 Mittel</label>
+                <input type="radio" id="q3_4" name="q3" value="4 Schwierig"><label for="q3_4">4 Schwierig</label>
+                <input type="radio" id="q3_5" name="q3" value="5 Sehr schwierig"><label for="q3_5">5 Sehr schwierig</label>
+            </div>
+			<button class="next-btn" onclick="saveStep(3, 4)">Weiter</button>
+        </div>
+
+
+		<!-- FRAGE 4: Freitextfeld -->
+		<div class="step" id="step4" style="display:none;">
+		    <div class="bot-msg">
+		        Welche Hinweise möchtest Du uns noch als Feedback mitgeben? (optional)
+		    </div>
+		    <div class="options">
+		        <textarea id="q4_text" placeholder="Deine Antwort hier eingeben..." 
+		            style="width: 95%; height: 120px; border: 2px solid #ddd; border-radius: 10px; padding: 10px; font-family: inherit; resize: none;"></textarea>
+		    </div>
+		    <button class="next-btn" onclick="finishChatWithText()">Feedback absenden</button>
+		</div>
+    </div>
+
+    <div id="success-section">
+        <div class="bot-msg">Vielen Dank für Dein Feedback!</div>
+    </div>
+</div>
+
+<script>
+    let feedbackData = {};
+    const totalSteps = 4;
+
+    function updateProgress(step) {
+        const percent = (step / totalSteps) * 100;
+        document.getElementById('progress-bar').style.width = percent + '%';
+    }
+
+    function saveStep(current, next) {
+        const selected = document.querySelector(`input[name="q${current}"]:checked`);
+        if (!selected) {
+            alert("Bitte wähle mindestens eine Antwort aus.");
+            return;
+        }
+        feedbackData[`Frage_${current}`] = selected.value;
+        document.getElementById(`step${current}`).style.display = 'none';
+        document.getElementById(`step${next}`).style.display = 'block';
+        updateProgress(next);
+    }
+
+	function finishChatWithText() {
+	    // Text aus der Textarea auslesen
+	    const textHinweis = document.getElementById('q4_text').value;
+	    
+	    // Im Daten-Objekt speichern (auch wenn es leer ist)
+	    feedbackData["Hinweise"] = textHinweis || "Keine Angaben";
+		
+		document.getElementById('chat-flow').style.display = 'none';
+	    
+	    sendJSON();
+	}
+
+	function sendJSON() {
+
+	        const url = "https://n8n.docyet.com/webhook/14c06613-8168-4b42-91d3-92b0c713afbb";
+	        
+	        // Verpacken der Daten in das gewünschte JSON-Format
+	        const payload = {
+	            "json_content": feedbackData
+	        };
+
+	        fetch(url, {
+	            method: "POST",
+	            headers: {
+	                "Content-Type": "application/json"
+	            },
+	            body: JSON.stringify(payload)
+	        })
+	        .then(response => {
+	            if (response.ok) {
+					alert("Dein Feedback erfolgreich übermittelt!");
+	                document.getElementById('chat-flow').style.display = 'none';
+	                document.getElementById('success-section').style.display = 'block';
+	            } else {
+	                alert("Fehler beim Senden.");
+	            }
+	        })
+	        .catch(error => {
+	            console.error("Fehler:", error);
+	            alert("Senden fehlgeschlagen. Prüfe die URL oder CORS-Einstellungen.");
+	        });
+	    }
+</script>
+
+</body>
+</html>
