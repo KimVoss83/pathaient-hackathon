@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Challenge-Agent</title>
+    <style>
+
+		:root {
+		  --green: #006b4f;
+		  --light-green: #eaf7ef;
+		  --soft-mint: #eaf6f4;
+		  --soft-yellow: #fbfae8;
+		  --lime: #8cff3f;
+		  --text: #2d3338;
+		  --muted: #687176;
+		  --white: #ffffff;
+		}
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 20px; }
+		#chat-container { width: 100%; max-width: 450px; background: var(--green); padding: 25px; border-radius: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); position: relative; overflow: hidden; }
+		.bot-msg { background: var(--green); color: white; padding: 12px; border-radius: 10px 10px 10px 0; font-size: 1.5em; margin-bottom: 20px; }
+
+        .options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        
+		/* Fortschrittsbalken Container */
+		#progress-container { width: 100%; height: 8px; background: #e9ecef; position: absolute; top: 0; left: 0; }
+		/* Der eigentliche grüne Balken */
+		#progress-bar { width: 25%; height: 100%; background: var(--lime); transition: width 0.4s ease; }
+		
+        /* Versteckt Checkboxen und Radio-Buttons */
+        .options input { display: none; }
+		
+		/* Basis-Design der Labels */
+		.options label {
+		    display: block;
+		    padding: 15px;
+		    border: 2px solid var(--lime);
+		    border-radius: 10px;
+		    cursor: pointer;
+		    text-align: center;
+		    font-weight: 500;
+		    position: relative; 
+		    z-index: 1;
+		    overflow: hidden; 
+		    background: white;
+			color: var(--green);
+			background-color: var(--lime);
+			
+		    /* Transition für die Rückkehr zum Normalzustand */
+		    transition: color 0.3s ease, border-color 0.3s ease;
+		}
+
+		/* Die farbige Fläche - Startet LINKS außerhalb */
+		.options label::before {
+		    content: "";
+		    position: absolute;
+		    top: 0;
+		    left: -100%; /* Komplett links versteckt */
+		    width: 100%;
+		    height: 100%;
+		    background: var(--green); /* Deine Hover-Farbe */
+		    z-index: -1;
+		    /* Transition für die Hin- und Rückbewegung */
+		    transition: transform 0.4s ease;
+		    transform: translateX(0);
+		}
+
+		/* HOVER: Hier passiert die Animation beim Draufgehen */
+		.options label:hover {
+		    border-color: var(--lime);
+			color: var(--white);
+		}
+
+		.options label:hover::before {
+		    /* Schiebt die Fläche per Transform rein - das ist performanter */
+		    transform: translateX(100%);
+		}
+
+		/* Spezialfall: Wenn das Feld bereits ausgewählt ist */
+		.options input:checked + label {
+		    background-color: var(--green);
+		    color: var(--white);
+		    border-color: var(--lime);
+		}
+
+		.options input:checked + label::before {
+		    display: none; /* Keine Animation bei bereits aktiven Feldern */
+		}
+		
+		button.next-btn {
+		    display: block;
+		    padding: 15px;
+		    border: 2px solid var(--lime);
+		    border-radius: 10px;
+		    cursor: pointer;
+		    text-align: center;
+		    font-weight: 500;
+		    font-size: 16px;
+		    position: relative; 
+		    z-index: 1;
+		    overflow: hidden; 
+		    background-color: var(--lime); 
+		    color: var(--green);
+		    transition: color 0.3s ease, border-color 0.3s ease;
+		    width: 100%;
+		}
+
+		button.next-btn::before {
+		    content: "";
+		    position: absolute;
+		    top: 0;
+		    left: -100%;
+		    width: 100%;
+		    height: 100%;
+		    background: var(--white);
+		    z-index: -1;
+		    transition: transform 0.4s ease;
+		    transform: translateX(0); 
+		}
+
+		button.next-btn:hover {
+		    color: var(--green); 
+		    border-color: var(--lime);
+		}
+
+		button.next-btn:hover::before {
+		    transform: translateX(100%);
+		}
+		
+		textarea:focus {
+		    outline: none;
+		    border-color: var(--lime);
+		    background-color: #f8f9fa;
+		}
+
+		#success-section { display: none; text-align: center; }
+		
+		.loader {
+		    border: 6px solid var(--white);
+		    border-top: 6px solid var(--lime); 
+		    border-radius: 50%;
+		    width: 50px;
+		    height: 50px;
+		    animation: spin 1s linear infinite;
+		    margin: 0 auto;
+		}
+
+		@keyframes spin {
+		    0% { transform: rotate(0deg); }
+		    100% { transform: rotate(360deg); }
+		}
+    </style>
+</head>
+<body>
+
+<div id="chat-container">
+	<!-- Fortschrittsbalken -->
+	<div id="progress-container">
+	    <div id="progress-bar"></div>
+	</div>
+    <div id="chat-flow">
+        
+        <!-- FRAGE 1: Mehrfachauswahl -->
+        <div class="step" id="step1">
+            <div class="bot-msg">In welcher Richtung möchtest Du Dein Gesundheitsziel erstellen? (Mehrfachauswahl möglich)</div>
+            <div class="options">
+				<input type="checkbox" id="q1a" name="q1" value="Ernährung"><label for="q1a">Ernährung</label>
+				<input type="checkbox" id="q1b" name="q1" value="Bewegung"><label for="q1b">Bewegung</label>
+				<input type="checkbox" id="q1c" name="q1" value="Mentale Gesundheit"><label for="q1c">Mentale Gesundheit</label>
+				<input type="checkbox" id="q1d" name="q1" value="Schlaf"><label for="q1d">Schlaf</label>
+				<input type="checkbox" id="q1e" name="q1" value="Vorsorge"><label for="q1e">Vorsorge</label>
+            </div>
+            <button class="next-btn" onclick="saveAndNext(1, 2)">Weiter</button>
+        </div>
+
+        <!-- FRAGE 2: Einfachauswahl -->
+        <div class="step" id="step2" style="display:none;">
+            <div class="bot-msg">Wie viel Zeit möchtest Du pro Woche ungefähr für Dein Ziel einplanen?</div>
+	            <div class="options">
+					<input type="radio" id="q2a" name="q2" value="ca. 2–3 Aktivitäten pro Woche, je 4–10 Minuten"><label for="q2a">ca. 2–3 Aktivitäten pro Woche, je 4–10 Minuten</label>
+					<input type="radio" id="q2b" name="q2" value="ca. 3–5 Aktivitäten pro Woche, je 10–20 Minuten"><label for="q2b">ca. 3–5 Aktivitäten pro Woche, je 10–20 Minuten</label>
+	                <input type="radio" id="q2c" name="q2" value="ca. 5–7 Aktivitäten pro Woche, je 20–30 Minuten"><label for="q2c">ca. 5–7 Aktivitäten pro Woche, je 20–30 Minuten</label>
+	                <input type="radio" id="q2d" name="q2" value="Ich möchte kurze und längere Aktivitäten gemischt bekommen"><label for="q2d">Ich möchte kurze und längere Aktivitäten gemischt bekommen</label>
+	            </div>
+            <button class="next-btn" onclick="saveAndNext(2, 3)">Weiter</button>
+        </div>
+
+        <!-- FRAGE 3: Einfachauswahl -->
+        <div class="step" id="step3" style="display:none;">
+            <div class="bot-msg">Wie lange möchtest Du an Deinem Ziel arbeiten?</div>
+	            <div class="options">
+	                <input type="radio" id="q3a" name="q3" value="ca. 4 Wochen"><label for="q3a">ca. 4 Wochen</label>
+	                <input type="radio" id="q3b" name="q3" value="ca. 8 Wochen"><label for="q3b">ca. 8 Wochen</label>
+					<input type="radio" id="q3c" name="q3" value="ca. 12 Wochen"><label for="q3c">ca. 12 Wochen</label>
+					<input type="radio" id="q3d" name="q3" value="Ich weiß es nicht"><label for="q3d">Ich weiß es nicht</label>
+	            </div>
+            <button class="next-btn" onclick="saveAndNext(3, 4)">Weiter</button>
+        </div>
+
+        <!-- FRAGE 4: Mehrfachauswahl -->
+        <div class="step" id="step4" style="display:none;">
+            <div class="bot-msg">Was ist Dir bei Deinem Ziel wichtig?</div>
+	            <div class="options">
+					<input type="checkbox" id="q4a" name="q4" value="Ich habe wenig Zeit"><label for="q4a">Ich habe wenig Zeit</label>
+					<input type="checkbox" id="q4b" name="q4" value="Ich bin Anfänger*in"><label for="q4b">Ich bin Anfänger*in</label>
+					<input type="checkbox" id="q4c" name="q4" value="Ich möchte keine intensiven Übungen"><label for="q4c">Ich möchte keine intensiven Übungen</label>
+					<input type="checkbox" id="q4d" name="q4" value="Ich möchte kein Fitnessarmband nutzen"><label for="q4d">Ich möchte kein Fitnessarmband nutzen</label>
+					<input type="checkbox" id="q4e" name="q4" value="Ich möchte lieber Wissen/Tipps"><label for="q4e">Ich möchte lieber Wissen/Tipps</label>
+					<input type="checkbox" id="q4f" name="q4" value="Ich möchte lieber praktische Übungen"><label for="q4f">Ich möchte lieber praktische Übungen</label>
+					<input type="checkbox" id="q4g" name="q4" value="Ich möchte lieber kleine tägliche Aufgaben"><label for="q4g">Ich möchte lieber kleine tägliche Aufgaben</label>
+	            </div>
+				<button class="next-btn" onclick="saveAndNext(4, 5)">Weiter</button>
+        </div>
+		
+		<!-- FRAGE 5: Freitextfeld -->
+		<div class="step" id="step5" style="display:none;">
+		    <div class="bot-msg">
+		        Welche Hinweise möchtest Du uns für die Erstellung Deines Trainingsplans noch mitgeben? 
+		        Hast Du ein konkretes Ziel? Hast Du Beeinträchtigungen, auf die wir Rücksicht nehmen sollen? (optional)
+		    </div>
+		    <div class="options">
+		        <textarea id="q5_text" placeholder="Deine Antwort hier eingeben..." 
+		            style="width: 95%; height: 120px; border: 2px solid #ddd; border-radius: 10px; padding: 10px; font-family: inherit; resize: none;"></textarea>
+		    </div>
+		    <button class="next-btn" onclick="finishChatWithText()">Fertigstellen</button>
+		</div>
+    </div>
+
+	<!-- Lade-Animation (wird während des Versands angezeigt) -->
+	<div id="loading-section" style="display:none; text-align: center; padding: 20px;">
+	    <div class="loader"></div>
+	    <p style="margin-top: 20px; color: var(--white); font-weight: bold;">Erstellung Deines Trainingsplans, das kann einige Minuten dauern...</p>
+	</div>
+
+	
+	<div id="success-section">
+	    <div class="bot-msg">Dein Trainingsplan wurde erstellt!</div>
+	</div>
+	
+	<div id="response-container" style="display:none; width: 100%;">
+	    <div id="html-output"></div>
+
+	    <button class="next-btn" style="margin-top: 20px;" onclick="location.href='feedback.html'">Feedback erstellen</button>
+	</div>
+
+</div>
+
+<script>
+    let answers = {};
+	function updateProgress(step) {
+	    const totalSteps = 5; // Da du 5 Fragen hast
+	    const percent = (step / totalSteps) * 100;
+	    document.getElementById('progress-bar').style.width = percent + '%';
+	}
+
+    function saveAndNext(current, next) {
+        const selected = document.querySelectorAll(`input[name="q${current}"]:checked`);
+        if (selected.length === 0) {
+            alert("Bitte wähle mindestens eine Antwort aus.");
+            return;
+        }
+        // Sammelt alle Werte und trennt sie bei Mehrfachauswahl mit einem Komma
+        const values = Array.from(selected).map(el => el.value);
+        answers[`Frage_${current}`] = values.join(", ");
+        
+		document.getElementById(`step${current}`).style.display = 'none';
+	    document.getElementById(`step${next}`).style.display = 'block';
+	    
+	    updateProgress(next);
+    }
+	
+	function finishChatWithText() {
+	    // Text aus der Textarea auslesen
+	    const textHinweis = document.getElementById('q5_text').value;
+	    
+	    // Im Daten-Objekt speichern (auch wenn es leer ist)
+	    answers["Hinweise"] = textHinweis || "Keine Angaben";
+	    
+	    // Progressbar auf 100% setzen (da jetzt 5 Schritte)
+	    updateProgress(5); 
+	    
+	    // Chat ausblenden und Daten senden
+	    document.getElementById('chat-flow').style.display = 'none';
+	    sendData();
+	}
+
+	function sendData() {
+
+		document.getElementById('chat-flow').style.display = 'none';
+		document.getElementById('loading-section').style.display = 'block';
+		
+	    // Erstellt den CSV-Inhalt (Header und Datenzeile)
+	    const headers = Object.keys(answers).join(";");
+	    const row = Object.values(answers).map(val => `"${val}"`).join(";");
+	    const csvContent = headers + "\n" + row;
+
+	    // Ziel-URL
+	    const url = "https://n8n.docyet.com/webhook/89a871de-5c6e-4d5a-a664-a3af85e54308";
+
+	    // Datenpaket schnüren
+	    const data = {
+	        "csv_content": csvContent
+	    };
+
+	    // Der POST-Request (entspricht deinem CURL-Befehl)
+	    fetch(url, {
+	        method: "POST",
+	        headers: {
+	            "Content-Type": "application/json"
+	        },
+	        body: JSON.stringify(data)
+	    })
+		.then(response => {
+		        if (!response.ok) throw new Error('Server-Fehler');
+		        return response.text(); 
+		    })
+		    .then(htmlResult => {
+		        // Loader ausblenden
+		        document.getElementById('loading-section').style.display = 'none';
+		        
+		        // Das empfangene HTML in den Container schreiben
+		        const outputDiv = document.getElementById('html-output');
+		        outputDiv.innerHTML = htmlResult;
+		        
+		        // Ergebnis-Container einblenden
+		        document.getElementById('response-container').style.display = 'block';
+		    })
+	    .catch(error => {
+	        console.error("Fehler:", error);
+	        alert("Netzwerkfehler oder die Adresse ist nicht erreichbar.");
+	    });
+	}
+
+</script>
+
+</body>
+</html>
